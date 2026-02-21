@@ -1,0 +1,45 @@
+name: Job Tracker Pipeline
+
+# 1. WHEN SHOULD THIS RUN?
+on:
+  schedule:
+    - cron: '0 */6 * * *' # This means "Run automatically every 6 hours"
+  workflow_dispatch:      # This gives you a "Run Now" button on GitHub
+
+# 2. WHAT SHOULD IT DO?
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest # Borrow a free Linux computer from GitHub
+
+    steps:
+      - name: Download my code
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install my packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright groq httpx beautifulsoup4
+          playwright install chromium
+
+      - name: Run the Orchestrator
+        env: # 3. PASS THE SECRET KEYS SAFELY
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Save the Database Memory
+        run: |
+          # 4. SAVE OUR PROGRESS
+          # After scraping, the jobs.db file has new data. 
+          # We must commit it back to GitHub so it remembers what it scraped next time!
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add jobs.db
+          git commit -m "Auto-update jobs database" || echo "No new jobs to save"
+          git push
