@@ -35,11 +35,9 @@ jobs:
 
       - name: Save the Database Memory
         run: |
-          # 4. SAVE OUR PROGRESS
-          # After scraping, the jobs.db file has new data. 
-          # We must commit it back to GitHub so it remembers what it scraped next time!
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add jobs.db
           git commit -m "Auto-update jobs database" || echo "No new jobs to save"
+          git pull --rebase origin main
           git push
